@@ -202,6 +202,46 @@ button { font: inherit; color: inherit; }
 #estFx { pointer-events: none; }
 #estBase { cursor: pointer; }
 .rodape { color: var(--muted); font-size: 12px; max-width: 80ch; }
+
+/* modo TV: tudo numa tela só, sem rolar (liga sozinho em tela larga sem mouse, ou com ?tv=1; ?tv=0 desliga) */
+html.tv, html.tv body { height: 100%; overflow: hidden; }
+html.tv body { padding: 2vh 1.6vw; }
+html.tv .wrap { max-width: none; margin: 0; height: 100%; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-rows: auto auto auto auto minmax(0, 1fr); column-gap: 1.6vw; row-gap: 1.6vh; }
+html.tv .topo { grid-column: 1; grid-row: 1; }
+html.tv .aviso { grid-column: 1; grid-row: 2; font-size: 1.5vh; padding: 1vh 1vw; }
+html.tv .placar { grid-column: 1; grid-row: 3; padding: 1.8vh 1.2vw; gap: 1.6vh; }
+html.tv #patroTopo { grid-column: 1; grid-row: 4; }
+html.tv .rodape { grid-column: 1; grid-row: 5; align-self: end; font-size: 1.3vh; max-width: none; }
+html.tv #mapaCard { grid-column: 2; grid-row: 1 / 6; min-height: 0; height: 100%; padding: 1.6vh 1.2vw; gap: 1.2vh; }
+html.tv .grade, html.tv #patroBase, html.tv .arena-nota { display: none; }
+html.tv #arena { width: 100%; height: 17vh; object-fit: contain; }
+html.tv .topo h1 { font-size: 5vh; }
+html.tv .topo .sub { font-size: 1.8vh; }
+html.tv .pill { font-size: 1.5vh; padding: 0.7vh 1vh; }
+html.tv .dados { gap: 1.4vh; }
+html.tv .cand .nome { font-size: 2vh; min-height: 0; }
+html.tv .cand .tag { font-size: 1.4vh; }
+html.tv .cand .pct { font-size: 9.5vh; }
+html.tv .cand .votos { font-size: 1.8vh; }
+html.tv .barra { height: 2vh; }
+html.tv .rotulo50 { font-size: 1.3vh; }
+html.tv .lider { font-size: 2.4vh; }
+html.tv .metricas { font-size: 1.7vh; }
+html.tv .espera { font-size: 5vh; }
+html.tv .espera small { font-size: 1.9vh; }
+html.tv .patro { padding: 1.4vh 1vw; }
+html.tv .patro strong { font-size: 3vh; }
+html.tv .patro span.d, html.tv .patro .tag { font-size: 1.6vh; }
+html.tv #mapaCard h2 { font-size: 2.8vh; }
+html.tv .mapa-cont { font-size: 1.6vh; }
+html.tv .mapa-corpo { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 1.2vh; }
+html.tv .mapa-lado { order: -1; gap: 1vh; }
+html.tv .mapa-lado .chips, html.tv .mapa-lado .campo, html.tv .mapa-lado .cidade, html.tv .mapa-lado .sim-box, html.tv .mapa-lado .vazio, html.tv .mapa-zoom { display: none; }
+html.tv .mapa-tela { flex: 1; min-height: 0; aspect-ratio: auto; max-height: none; }
+html.tv .cidades-tot b { font-size: 5.4vh; }
+html.tv .cidades-tot span { font-size: 1.6vh; }
+html.tv .escala { font-size: 1.4vh; }
+html.tv .mapa-msg { font-size: 1.5vh; }
 </style>
 
 <div class="wrap">
@@ -295,6 +335,22 @@ button { font: inherit; color: inherit; }
 
   <p class="rodape">Painel independente, sem vínculo com o TSE. Dados: Tribunal Superior Eleitoral (resultados.tse.jus.br), atualizados a cada 30 segundos. Os números são parciais até 100% das seções e só valem como resultado depois da proclamação pela Justiça Eleitoral.</p>
 </div>
+
+<script>
+(function () {
+  function decide() {
+    var m = /[?&]tv=([01])/.exec(location.search), on;
+    if (m) on = m[1] === "1";
+    else {
+      var fino = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+      on = !fino && innerWidth >= 900 && innerHeight >= 500 && innerWidth / innerHeight >= 1.7;
+    }
+    document.documentElement.classList.toggle("tv", on);
+  }
+  decide();
+  window.addEventListener("resize", decide);
+})();
+</script>
 
 <script>
 (function () {
