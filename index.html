@@ -1363,7 +1363,7 @@ html.tv .mapa-msg { font-size: calc(1.5 * var(--u)); }
   function apLista() {
     var v = S.visao, L = [], n = fmtInt;
     if (S.sim || S.ensaio) L.push("Atenção: isto é um ensaio com dados inventados. Nada aqui é resultado de eleição.");
-    if (!v) {
+    if (!v || !(v.base > 0)) {
       var ms = alvo - Date.now();
       if (ms > 0) {
         var h = Math.floor(ms / 3600000), mi = Math.floor(ms % 3600000 / 60000);
@@ -1392,13 +1392,46 @@ html.tv .mapa-msg { font-size: calc(1.5 * var(--u)); }
     }
     var rs = v.regioes.filter(function (r) { return r.tem && r.a !== r.b; });
     if (rs.length) { var rg = rs[AP.idx % rs.length], ra = rg.a > rg.b; L.push("No " + rg.nome + ", " + (ra ? NA.nome : NB.nome) + " tem " + fmtPct(ra ? rg.pa : rg.pb) + "% dos votos válidos apurados até agora."); }
+    if (S.eventos.length) L.push("Últimas atualizações: " + S.eventos.slice(0, 3).map(function (e) { return e.txt; }).join("; ") + ".");
     if (concl) L.push("Apuração concluída, com 100% das seções. " + lid + " teve " + fmtPct(v.a > v.b ? v.pa : v.pb) + "% dos votos válidos. O resultado oficial depende da proclamação pela Justiça Eleitoral.");
     else L.push("Os números ainda são parciais e mudam a cada boletim. O resultado só vale depois de 100% das seções e da proclamação oficial.");
     return L;
   }
+  // Voz: usa a do navegador; se não tiver (caso de muitas TVs), tenta uma voz online tocada num <audio>.
+  function apPedacos(t) {
+    var out = [], resto = t;
+    while (resto.length > 170) {
+      var k = -1; // corta preferindo o fim de uma frase
+      [". ", "; ", ", ", " "].some(function (s) { var i = resto.lastIndexOf(s, 170); if (i >= 40) { k = i; return true; } return false; });
+      if (k < 0) k = 170;
+      out.push(resto.slice(0, k + 1).trim()); resto = resto.slice(k + 1).trim();
+    }
+    if (resto) out.push(resto);
+    return out;
+  }
   function apVoz(t) {
-    if (!AP.temVoz) return;
-    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) { /* sem voz */ }
+    if (AP.temVoz) {
+      try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.rate = 1.05; speechSynthesis.speak(u); } catch (e) { /* sem voz */ }
+      return;
+    }
+    try {
+      AP.token = (AP.token || 0) + 1;
+      var meu = AP.token, fila = apPedacos(t);
+      if (!AP.au) { AP.au = new Audio(); AP.au.referrerPolicy = "no-referrer"; }
+      var au = AP.au;
+      var toca = function () {
+        if (meu !== AP.token || !fila.length) return;
+        au.onended = toca;
+        au.onerror = function () { AP.voz = false; var b = $("#apresVoz"); if (b) b.textContent = "Voz indisponível"; };
+        au.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=pt-BR&q=" + encodeURIComponent(fila.shift());
+        var pr = au.play(); if (pr && pr.catch) pr.catch(function () { /* o navegador pediu um toque antes de tocar som */ });
+      };
+      toca();
+    } catch (e) { /* sem som */ }
+  }
+  function apVozPara() {
+    if (AP.temVoz) { try { speechSynthesis.cancel(); } catch (e) { /* ok */ } return; }
+    AP.token = (AP.token || 0) + 1; if (AP.au) { try { AP.au.pause(); } catch (e) { /* ok */ } }
   }
   function apFala(t) {
     clearInterval(AP.t); clearTimeout(AP.espera);
@@ -1438,13 +1471,11 @@ html.tv .mapa-msg { font-size: calc(1.5 * var(--u)); }
     AP.el = $("#apresTxt"); AP.leitor = $("#apresLeitor");
     AP.ultEv = S.eventos[0] || null;
     var bt = $("#apresVoz");
-    if (AP.temVoz) {
-      bt.hidden = false;
-      bt.addEventListener("click", function () {
-        AP.voz = !AP.voz; bt.textContent = AP.voz ? "Voz ligada" : "Voz desligada";
-        if (AP.voz) apVoz(AP.txt); else { try { speechSynthesis.cancel(); } catch (e) { /* ok */ } }
-      });
-    }
+    bt.hidden = false;
+    bt.addEventListener("click", function () {
+      AP.voz = !AP.voz; bt.textContent = AP.voz ? "Voz ligada" : "Voz desligada";
+      if (AP.voz) apVoz(AP.txt); else apVozPara();
+    });
     apDesenha(); setTimeout(apProxima, 700); setInterval(apTick, 1000);
   }
 
