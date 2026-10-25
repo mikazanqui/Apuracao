@@ -1,0 +1,9 @@
+{
+  "name": "apuracao",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Painel de apuração ao vivo (2º turno 25/10/2026)",
+  "scripts": { "start": "node coletor.mjs" },
+  "engines": { "node": ">=18" }
+}

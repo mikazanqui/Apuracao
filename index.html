@@ -1,0 +1,1250 @@
+<title>Apuração 25/10</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sala de apuração. Placar dividido no topo, mapa de estados em grade ao lado das regiões, linha do tempo e últimas atualizações abaixo. */
+:root {
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Public Sans", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, monospace;
+  --bg: #edf0f4;
+  --surface: #ffffff;
+  --ink: #0f1729;
+  --muted: #566074;
+  --line: #d3d9e3;
+  --soft: #e3e8ef;
+  --lula: #c8282e;
+  --flavio: #1f4fc4;
+  --outros: #98a3b5;
+  --on-cand: #ffffff;
+  --live: #0c8a4b;
+  --warn: #9a6200;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0f1c; --surface: #121a2b; --ink: #eaf0fb; --muted: #93a0b8; --line: #243049; --soft: #1a2438;
+    --lula: #f0555a; --flavio: #5b86f0; --outros: #566179; --on-cand: #0a0f1c; --live: #34d17f; --warn: #e8b04a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0f1c; --surface: #121a2b; --ink: #eaf0fb; --muted: #93a0b8; --line: #243049; --soft: #1a2438;
+  --lula: #f0555a; --flavio: #5b86f0; --outros: #566179; --on-cand: #0a0f1c; --live: #34d17f; --warn: #e8b04a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+h1, h2, h3, p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* topo */
+.topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
+.topo h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 7vw, 44px); line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; text-wrap: balance; }
+.topo .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-family: var(--font-data); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: block; }
+.pill.live { color: var(--live); border-color: var(--live); }
+.pill.live i { background: var(--live); animation: pulsa 1.6s ease-in-out infinite; }
+.pill.replay, .pill.err { color: var(--warn); border-color: var(--warn); }
+.pill.replay i, .pill.err i { background: var(--warn); }
+@keyframes pulsa { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .pill.live i { animation: none; } }
+
+.aviso { border: 1px dashed var(--warn); color: var(--ink); background: var(--surface); padding: 10px 14px; border-radius: 6px; font-size: 13px; }
+.aviso b { color: var(--warn); }
+
+/* placar */
+.placar { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 14px; }
+.dados { display: flex; flex-direction: column; gap: 14px; }
+.arena { display: flex; flex-direction: column; gap: 6px; }
+#arena { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 6px; }
+.arena-nota { color: var(--muted); font-size: 12px; }
+.duelo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cand { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cand.dir { text-align: right; align-items: flex-end; }
+.cand .nome { font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cand.dir .nome { justify-content: flex-end; }
+.cand .tag { font-family: var(--font-data); font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.04em; }
+.cand .pct { font-family: var(--font-display); font-weight: 700; font-size: clamp(40px, 11.5vw, 112px); line-height: 0.95; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cand .pct small { font-size: 0.4em; font-weight: 600; margin-left: 2px; }
+.cand .votos { font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .cand .nome { min-height: 2.6em; align-content: flex-start; } }
+.cand.a .pct, .cand.a .nome { color: var(--lula); }
+.cand.b .pct, .cand.b .nome { color: var(--flavio); }
+.barra { position: relative; display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--soft); }
+.barra span { display: block; height: 100%; transition: width 0.9s ease; }
+.barra .sa { background: var(--lula); }
+.barra .so { background: var(--outros); }
+.barra .sb { background: var(--flavio); margin-left: auto; }
+.barra::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--ink); transform: translateX(-1px); }
+.rotulo50 { display: flex; justify-content: center; font-family: var(--font-data); font-size: 11px; color: var(--muted); margin-top: -8px; }
+.lider { font-size: 17px; font-weight: 600; text-wrap: balance; }
+.metricas { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--muted); }
+.metricas b { color: var(--ink); font-family: var(--font-data); font-weight: 500; font-variant-numeric: tabular-nums; }
+.espera { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 6vw, 40px); text-transform: uppercase; line-height: 1.05; }
+.espera small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 14px; color: var(--muted); text-transform: none; margin-top: 6px; }
+
+/* cartões */
+.grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 880px) { .grade { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.cartao { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cartao h2 { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
+.vazio { color: var(--muted); font-size: 13px; }
+
+/* mapa de estados */
+.mapa { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; max-width: 420px; }
+.uf { grid-column: calc(var(--c) + 1); grid-row: calc(var(--r) + 1); aspect-ratio: 1.15; border: 0; border-radius: 4px; background: var(--soft); color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; cursor: pointer; padding: 0; }
+.uf b { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.03em; }
+.uf em { font-style: normal; font-family: var(--font-data); font-size: 10px; }
+.uf.a { background: var(--lula); color: var(--on-cand); }
+.uf.b { background: var(--flavio); color: var(--on-cand); }
+.uf.p { background: linear-gradient(135deg, var(--lula) 50%, var(--flavio) 50%); color: var(--on-cand); }
+.uf[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.legenda i { width: 12px; height: 12px; border-radius: 3px; display: block; }
+.detalhe { border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; min-height: 64px; }
+.detalhe strong { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.03em; }
+.detalhe .linha { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+
+/* regiões */
+.regiao { display: flex; flex-direction: column; gap: 5px; }
+.regiao .cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.regiao .cab b { font-weight: 600; }
+.regiao .cab span { font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.regiao .barra { height: 10px; }
+.regiao .barra::after { display: none; }
+
+/* gráfico */
+.svg-wrap { overflow-x: auto; }
+.svg-wrap svg { display: block; width: 100%; min-width: 420px; height: auto; }
+.eixo { fill: var(--muted); font-family: var(--font-data); font-size: 11px; }
+.gl { stroke: var(--line); stroke-width: 1; }
+.g50 { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.55; }
+.la, .lb { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.la { stroke: var(--lula); }
+.lb { stroke: var(--flavio); }
+.da { fill: var(--lula); }
+.db { fill: var(--flavio); }
+
+/* últimas atualizações */
+.eventos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.eventos li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.eventos li:first-child { border-top: 0; }
+.eventos time { font-family: var(--font-data); font-size: 12px; color: var(--muted); padding-top: 2px; }
+
+/* patrocínio */
+.patro { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 14px 16px; color: var(--ink); text-decoration: none; }
+.patro .tag { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.patro strong { font-family: var(--font-display); font-size: 24px; letter-spacing: 0.02em; text-transform: uppercase; }
+.patro span.d { color: var(--muted); font-size: 14px; }
+
+/* mapa por cidade */
+.mapa-topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.mapa-cont { font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mapa-corpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 880px) { .mapa-corpo { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.mapa-tela { position: relative; width: 100%; aspect-ratio: 1.03 / 1; max-height: 84vh; min-height: 260px; border-radius: 8px; overflow: hidden; background: var(--bg); }
+.mapa-tela canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#mapaFx { pointer-events: none; }
+#mapaBase { cursor: crosshair; }
+#mapaBase:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.mapa-zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 2; }
+.mapa-zoom button { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 18px; line-height: 1; cursor: pointer; }
+.mapa-zoom button.txt { font-size: 11px; font-family: var(--font-data); }
+.mapa-msg { position: absolute; left: 8px; right: 56px; bottom: 8px; margin: 0; padding: 8px 10px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); font-size: 12.5px; color: var(--muted); z-index: 2; }
+.mapa-lado { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.campo select { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.cidade { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-height: 124px; display: flex; flex-direction: column; gap: 6px; }
+.cidade .nome { font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.05; letter-spacing: 0.02em; text-transform: uppercase; overflow-wrap: anywhere; }
+.cidade .linha { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.cidade .mini { height: 8px; border-radius: 4px; overflow: hidden; display: flex; background: var(--soft); }
+.cidade .mini .sa { background: var(--lula); }
+.cidade .mini .sb { background: var(--flavio); margin-left: auto; }
+.cidades-tot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cidades-tot div { display: flex; flex-direction: column; min-width: 0; }
+.cidades-tot b { font-family: var(--font-display); font-size: 38px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cidades-tot span { font-size: 12px; color: var(--muted); }
+.cidades-tot .a b { color: var(--lula); }
+.cidades-tot .b { text-align: right; }
+.cidades-tot .b b { color: var(--flavio); }
+.escala { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.escala .barra-e { height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--flavio), color-mix(in srgb, var(--flavio) 38%, var(--surface)), var(--line), color-mix(in srgb, var(--lula) 38%, var(--surface)), var(--lula)); }
+.escala .rot { display: flex; justify-content: space-between; font-family: var(--font-data); }
+.sim-box { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.sim-box small { color: var(--muted); font-size: 12px; }
+@media (max-width: 879px) {
+  .mapa-lado .cidade { order: -3; }
+  .mapa-lado .cidades-tot { order: -2; }
+  .mapa-lado .escala { order: -1; }
+}
+.btn { border: 1px solid var(--ink); background: var(--ink); color: var(--surface); border-radius: 6px; padding: 9px 14px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn.sec { background: transparent; color: var(--ink); }
+
+#estFx { pointer-events: none; }
+#estBase { cursor: pointer; }
+.rodape { color: var(--muted); font-size: 12px; max-width: 80ch; }
+</style>
+
+<div class="wrap">
+  <header class="topo">
+    <div>
+      <h1>Apuração · 2º turno</h1>
+      <p class="sub">Presidente da República · domingo, 25 de outubro de 2026</p>
+    </div>
+    <span class="pill" id="status"><i></i><span id="statusTxt">Carregando</span></span>
+  </header>
+
+  <div class="aviso" id="aviso" hidden></div>
+
+  <section class="placar">
+    <div class="dados" id="placarDados" aria-live="polite"></div>
+    <div class="arena">
+      <canvas id="arena" width="148" height="46" role="img" aria-label="Cabo de guerra entre as duas equipes"></canvas>
+      <p class="arena-nota">Os bonequinhos são genéricos. A corda anda conforme a diferença nos votos válidos, até 10 p.p. para cada lado.</p>
+    </div>
+  </section>
+
+  <div class="patro-slot" id="patroTopo"></div>
+
+  <section class="cartao mapa-card" id="mapaCard">
+    <div class="mapa-topo">
+      <h2>Mapa por cidade</h2>
+      <p class="mapa-cont" id="mapaCont" aria-live="off">5.564 cidades</p>
+    </div>
+    <div class="mapa-corpo">
+      <div class="mapa-tela" id="mapaTela">
+        <canvas id="mapaBase" tabindex="0" role="img" aria-label="Mapa do Brasil com as cidades coloridas pelo candidato que lidera a apuração"></canvas>
+        <canvas id="mapaFx" aria-hidden="true"></canvas>
+        <div class="mapa-zoom">
+          <button type="button" id="zMais" aria-label="Aproximar">+</button>
+          <button type="button" id="zMenos" aria-label="Afastar">−</button>
+          <button type="button" id="zBrasil" class="txt" aria-label="Ver o Brasil inteiro">BR</button>
+        </div>
+        <p class="mapa-msg" id="mapaMsg">Carregando o mapa…</p>
+      </div>
+      <div class="mapa-lado">
+        <div class="cidades-tot" id="cidadesTot"></div>
+        <div class="escala" aria-hidden="true">
+          <div class="barra-e"></div>
+          <div class="rot"><span id="escB">Flávio +40</span><span>empate</span><span id="escA">Lula +40</span></div>
+        </div>
+        <div class="chips" id="mapaChips"></div>
+        <label class="campo" for="mapaUf">Ir para um estado
+          <select id="mapaUf"><option value="">Escolha…</option></select>
+        </label>
+        <div class="cidade" id="cidade" aria-live="polite"></div>
+        <div class="sim-box" id="simBox"></div>
+        <p class="vazio">Toque numa cidade para ver os votos. Use + e − para aproximar, ou Ctrl e a roda do mouse.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grade">
+    <section class="cartao">
+      <h2>Estados</h2>
+      <div class="mapa-tela" id="estTela">
+        <canvas id="estBase" role="img" aria-label="Mapa do Brasil com cada estado colorido pelo candidato que lidera"></canvas>
+        <canvas id="estFx" aria-hidden="true"></canvas>
+        <p class="mapa-msg" id="estMsg" hidden></p>
+      </div>
+      <div class="legenda">
+        <span><i style="background:var(--lula)"></i><span id="legA">Lula</span></span>
+        <span><i style="background:var(--flavio)"></i><span id="legB">Flávio Bolsonaro</span></span>
+        <span><i style="background:var(--line)"></i>Sem votos ainda</span>
+      </div>
+      <div class="detalhe" id="detalhe"></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Regiões</h2>
+      <div id="regioes"></div>
+    </section>
+  </div>
+
+  <div class="grade">
+    <section class="cartao">
+      <h2>Votos válidos ao longo da apuração</h2>
+      <div class="svg-wrap" id="grafico"></div>
+    </section>
+    <section class="cartao">
+      <h2>Últimas atualizações</h2>
+      <ul class="eventos" id="eventos"></ul>
+    </section>
+  </div>
+
+  <div class="patro-slot" id="patroBase"></div>
+
+  <p class="rodape">Painel independente, sem vínculo com o TSE. Dados: Tribunal Superior Eleitoral (resultados.tse.jus.br), atualizados a cada 30 segundos. Os números são parciais até 100% das seções e só valem como resultado depois da proclamação pela Justiça Eleitoral.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ======= CONFIGURAÇÃO ======= */
+  var CONFIG = {
+    // Endereço do seu Worker (veja o LEIA-ME). Vazio = modo demonstração com o resultado final do 1º turno.
+    FEED_URL: "",
+    POLL_MS: 30000,
+    INICIO: "2026-10-25T17:00:00-03:00", // fechamento das urnas em Brasília
+    CANDIDATOS: {
+      "13": { nome: "Lula", completo: "Luiz Inácio Lula da Silva", partido: "PT" },
+      "22": { nome: "Flávio Bolsonaro", completo: "Flávio Bolsonaro", partido: "PL" }
+    },
+    PATROCINIO: { ativo: true, rotulo: "Espaço patrocinado", titulo: "Seu anúncio aqui", detalhe: "Milhares de pessoas acompanham esta página durante a apuração.", href: "" }
+  };
+
+  var REGIOES = [
+    { nome: "Norte", ufs: ["AC", "AM", "AP", "PA", "RO", "RR", "TO"] },
+    { nome: "Nordeste", ufs: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"] },
+    { nome: "Centro-Oeste", ufs: ["DF", "GO", "MS", "MT"] },
+    { nome: "Sudeste", ufs: ["ES", "MG", "RJ", "SP"] },
+    { nome: "Sul", ufs: ["PR", "RS", "SC"] },
+    { nome: "Exterior", ufs: ["ZZ"] }
+  ];
+
+  // Resultado final do 1º turno (4/out/2026, 100% das seções), usado só no modo demonstração.
+  var REPLAY = {
+    brasil: {
+      secoesPct: 100, validos: 119300788,
+      candidatos: [{ n: "13", votos: 53879538 }, { n: "22", votos: 56104503 }, { n: "0", votos: 9316747 }]
+    },
+    ufs: null
+  };
+
+  var S = { sim: false, ensaio: false, turnoFeed: "", pre: null, modo: "aguardando", dados: null, visao: null, sel: null, eventos: [], hist: [], erro: false, ultima: null, turnoTeste: /[?&]turno=1/.test(location.search) };
+
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var nf = new Intl.NumberFormat("pt-BR");
+  var pf = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var fmtInt = function (n) { return nf.format(Math.round(n)); };
+  var fmtPct = function (n) { return pf.format(n); };
+  var ids = Object.keys(CONFIG.CANDIDATOS);
+  var IA = ids[0], IB = ids[1];
+  var NA = CONFIG.CANDIDATOS[IA], NB = CONFIG.CANDIDATOS[IB];
+
+  function hora(d) { return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+
+  /* ======= DADOS → VISÃO ======= */
+  function votosDe(lista, id) {
+    var c = (lista || []).filter(function (x) { return String(x.n) === id; })[0];
+    return c ? c.votos : 0;
+  }
+  function somaDe(lista) { return (lista || []).reduce(function (s, c) { return s + c.votos; }, 0); }
+
+  function montarVisao(d) {
+    var b = d.brasil;
+    var a = votosDe(b.candidatos, IA), c = votosDe(b.candidatos, IB);
+    var base = b.validos > 0 ? b.validos : somaDe(b.candidatos);
+    var outros = Math.max(0, base - a - c);
+    var v = {
+      a: a, b: c, outros: outros, base: base,
+      pa: base ? a / base * 100 : 0, pb: base ? c / base * 100 : 0, po: base ? outros / base * 100 : 0,
+      secoesPct: b.secoesPct || 0, comparecimento: b.comparecimentoPct, brancos: b.brancos, nulos: b.nulos,
+      ufs: {}, regioes: []
+    };
+    Object.keys(d.ufs || {}).forEach(function (uf) {
+      var u = d.ufs[uf], ua = votosDe(u.candidatos, IA), ub = votosDe(u.candidatos, IB), t = somaDe(u.candidatos);
+      v.ufs[uf] = { a: ua, b: ub, t: t, pa: t ? ua / t * 100 : 0, pb: t ? ub / t * 100 : 0, secoesPct: u.secoesPct || 0 };
+    });
+    REGIOES.forEach(function (r) {
+      var ra = 0, rb = 0, rt = 0;
+      r.ufs.forEach(function (uf) { var u = v.ufs[uf]; if (u) { ra += u.a; rb += u.b; rt += u.t; } });
+      v.regioes.push({ nome: r.nome, a: ra, b: rb, t: rt, pa: rt ? ra / rt * 100 : 0, pb: rt ? rb / rt * 100 : 0, tem: rt > 0 });
+    });
+    return v;
+  }
+
+  /* ======= RENDER ======= */
+  function renderStatus() {
+    var el = $("#status"), tx = $("#statusTxt");
+    var cls = "pill", txt = "";
+    if (S.sim || S.ensaio) { cls += " replay"; txt = (S.ensaio ? "Ensaio" : "Simulação") + " · dados fictícios"; }
+    else if (S.modo === "replay") { cls += " replay"; txt = "Demonstração · 1º turno"; }
+    else if (S.modo === "aguardando") { txt = "Aguardando o TSE"; }
+    else if (S.erro) { cls += " err"; txt = "Sem conexão · última " + (S.ultima ? hora(S.ultima) : "—"); }
+    else { cls += " live"; txt = "Ao vivo · " + (S.ultima ? hora(S.ultima) : ""); }
+    el.className = cls; tx.textContent = txt;
+
+    var av = $("#aviso");
+    if (S.modo === "replay") {
+      av.hidden = false;
+      av.innerHTML = "<b>Modo demonstração.</b> Estes números são o resultado final do 1º turno (4 de outubro, 100% das seções). Os do 2º turno entram aqui quando o TSE começar a divulgar, domingo às 17h.";
+    } else if (S.turnoTeste) {
+      av.hidden = false;
+      av.innerHTML = "<b>Modo teste.</b> Mostrando o 1º turno pela sua conexão com o TSE.";
+    } else { av.hidden = true; }
+    if (S.sim || S.ensaio) {
+      av.hidden = false;
+      av.innerHTML = "<b>" + (S.ensaio ? "Ensaio" : "Simulação") + " com dados inventados.</b> Nada aqui é resultado de eleição. Os números, o mapa e os nomes \"Vermelho\" e \"Azul\" existem só para mostrar como a página se comporta durante a apuração.";
+    }
+  }
+
+  function candHtml(lado, nome, tag, pct, votos) {
+    return '<div class="cand ' + (lado === "a" ? "a" : "b dir") + '">' +
+      '<div class="nome">' + esc(nome) + ' <span class="tag">' + esc(tag) + '</span></div>' +
+      '<div class="pct">' + (pct === null ? "—" : fmtPct(pct) + "<small>%</small>") + '</div>' +
+      '<div class="votos">' + (votos === null ? "&nbsp;" : fmtInt(votos) + " votos") + '</div></div>';
+  }
+
+  function renderPlacar() {
+    var el = $("#placarDados"), v = S.visao;
+    if (!v) {
+      el.innerHTML = '<div class="duelo">' + candHtml("a", NA.nome, tagDe(NA, IA), null, null) + candHtml("b", NB.nome, tagDe(NB, IB), null, null) + '</div>' +
+        '<div class="barra"><span style="width:0"></span></div>' +
+        '<p class="espera"><span id="contagem">—</span><small>A apuração começa quando as urnas fecharem em Brasília, às 17h. Esta página atualiza sozinha, não precisa recarregar.</small></p>';
+      tickContagem();
+      return;
+    }
+    var dif = Math.abs(v.a - v.b), difpp = Math.abs(v.pa - v.pb);
+    var concl = v.secoesPct >= 99.995;
+    var txt;
+    if (dif === 0) txt = "Empate técnico";
+    else {
+      var lider = v.a > v.b ? NA.nome : NB.nome;
+      var verbo = S.modo === "replay" ? "terminou na frente no 1º turno" : (concl ? "ficou à frente" : "está à frente");
+      txt = lider + " " + verbo + " por " + fmtInt(dif) + " votos (" + fmtPct(difpp) + " p.p.)";
+    }
+    var met = '<span>Seções totalizadas <b>' + fmtPct(v.secoesPct) + '%</b></span>';
+    if (v.comparecimento !== null && v.comparecimento !== undefined) met += '<span>Comparecimento <b>' + fmtPct(v.comparecimento) + '%</b></span>';
+    if (v.brancos || v.nulos) met += '<span>Brancos e nulos <b>' + fmtInt((v.brancos || 0) + (v.nulos || 0)) + '</b></span>';
+    met += '<span>Votos válidos <b>' + fmtInt(v.base) + '</b></span>';
+    el.innerHTML =
+      '<div class="duelo">' + candHtml("a", NA.nome, tagDe(NA, IA), v.pa, v.a) + candHtml("b", NB.nome, tagDe(NB, IB), v.pb, v.b) + '</div>' +
+      '<div class="barra" role="img" aria-label="Divisão dos votos válidos"><span class="sa" style="width:' + v.pa + '%"></span><span class="so" style="width:' + v.po + '%"></span><span class="sb" style="width:' + v.pb + '%"></span></div>' +
+      '<div class="rotulo50">50%</div>' +
+      '<p class="lider">' + esc(txt) + (concl && S.modo !== "replay" ? ". Apuração concluída." : "") + '</p>' +
+      '<div class="metricas">' + met + '</div>';
+  }
+
+  function renderMapa() {
+    EM.sujo = true; estPedir();
+    var v = S.visao, tem = !!(v && Object.keys(v.ufs).length), m = "";
+    if (!MP.pronto) m = MP.erroMalha ? "Não consegui carregar o desenho do mapa." : "Carregando o mapa…";
+    else if (!tem && S.modo === "replay") m = "Demonstração sem dados por estado. Os estados acendem com os números do TSE.";
+    else if (!tem) m = "Os estados acendem quando os primeiros votos forem totalizados.";
+    if (EM.msg) { EM.msg.textContent = m; EM.msg.hidden = !m; }
+    renderDetalhe();
+  }
+
+  function renderDetalhe() {
+    var el = $("#detalhe"), v = S.visao;
+    if (!v || !Object.keys(v.ufs).length) {
+      el.innerHTML = '<p class="vazio">' + (S.modo === "replay" ? "O mapa por estado acende com os dados ao vivo do TSE." : "Os estados aparecem aqui quando os primeiros votos forem totalizados.") + '</p>';
+      return;
+    }
+    var uf = S.sel || EM.hov, u = uf ? v.ufs[uf] : null;
+    if (!u) { el.innerHTML = '<p class="vazio">Toque num estado para ver os votos.</p>'; return; }
+    el.innerHTML = '<strong>' + uf + '</strong> <span class="vazio">· ' + fmtPct(u.secoesPct) + '% das seções</span>' +
+      '<div class="linha"><span style="color:var(--lula)">' + esc(NA.nome) + '</span><span>' + fmtPct(u.pa) + '% · ' + fmtInt(u.a) + '</span></div>' +
+      '<div class="linha"><span style="color:var(--flavio)">' + esc(NB.nome) + '</span><span>' + fmtPct(u.pb) + '% · ' + fmtInt(u.b) + '</span></div>';
+  }
+
+  function renderRegioes() {
+    var v = S.visao, el = $("#regioes");
+    if (!v || !v.regioes.some(function (r) { return r.tem; })) {
+      el.innerHTML = '<p class="vazio">' + (S.modo === "replay" ? "As regiões aparecem com os dados ao vivo do TSE." : "As regiões aparecem quando os primeiros votos forem totalizados.") + '</p>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:14px">' + v.regioes.map(function (r) {
+      if (!r.tem) return "";
+      var out = Math.max(0, 100 - r.pa - r.pb);
+      return '<div class="regiao"><div class="cab"><b>' + r.nome + '</b><span>' + fmtPct(r.pa) + '% · ' + fmtPct(r.pb) + '%</span></div>' +
+        '<div class="barra"><span class="sa" style="width:' + r.pa + '%"></span><span class="so" style="width:' + out + '%"></span><span class="sb" style="width:' + r.pb + '%"></span></div></div>';
+    }).join("") + '</div>';
+  }
+
+  function renderGrafico() {
+    var el = $("#grafico"), h = S.hist;
+    if (h.length < 2) {
+      el.innerHTML = '<p class="vazio">A linha começa a ser traçada quando a apuração avançar. Ela mostra a porcentagem de votos válidos de cada candidato conforme as seções são totalizadas.</p>';
+      return;
+    }
+    var W = 640, H = 250, L = 44, R = 22, T = 14, B = 30;
+    var ys = [50];
+    h.forEach(function (p) { ys.push(p.a, p.b); });
+    var lo = Math.floor(Math.min.apply(null, ys) - 1), hi = Math.ceil(Math.max.apply(null, ys) + 1);
+    if (hi - lo < 4) { lo -= 2; hi += 2; }
+    var step = (hi - lo) > 24 ? 10 : (hi - lo) > 12 ? 5 : (hi - lo) > 6 ? 2 : 1;
+    var x = function (p) { return L + (W - L - R) * p / 100; };
+    var y = function (v) { return T + (H - T - B) * (1 - (v - lo) / (hi - lo)); };
+    var g = "";
+    for (var t = Math.ceil(lo / step) * step; t <= hi; t += step) {
+      g += '<line class="gl" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(t) + '" y2="' + y(t) + '"/><text class="eixo" x="' + (L - 8) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + t + '%</text>';
+    }
+    [0, 25, 50, 75, 100].forEach(function (p) { g += '<text class="eixo" x="' + x(p) + '" y="' + (H - 8) + '" text-anchor="middle">' + p + '%</text>'; });
+    var pa = h.map(function (p) { return x(p.p).toFixed(1) + "," + y(p.a).toFixed(1); }).join(" ");
+    var pb = h.map(function (p) { return x(p.p).toFixed(1) + "," + y(p.b).toFixed(1); }).join(" ");
+    var u = h[h.length - 1];
+    el.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Porcentagem de votos válidos por seções totalizadas">' + g +
+      '<line class="g50" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(50) + '" y2="' + y(50) + '"/>' +
+      '<polyline class="la" points="' + pa + '"/><polyline class="lb" points="' + pb + '"/>' +
+      '<circle class="da" cx="' + x(u.p) + '" cy="' + y(u.a) + '" r="4.5"/><circle class="db" cx="' + x(u.p) + '" cy="' + y(u.b) + '" r="4.5"/></svg>' +
+      '<p class="vazio" style="margin-top:6px">Eixo horizontal: seções totalizadas. Linha tracejada: 50%.</p>';
+  }
+
+  function renderEventos() {
+    var el = $("#eventos");
+    if (!S.eventos.length) {
+      el.innerHTML = '<li><span></span><span class="vazio">' + (S.modo === "replay" ? "Mudanças de liderança e estados concluídos aparecem aqui ao vivo." : "Nada por enquanto. Mudanças de liderança e estados concluídos aparecem aqui.") + '</span></li>';
+      return;
+    }
+    el.innerHTML = S.eventos.map(function (e) { return '<li><time>' + hora(e.t) + '</time><span>' + esc(e.txt) + '</span></li>'; }).join("");
+  }
+
+  function renderPatro() {
+    var P = CONFIG.PATROCINIO;
+    var html = "";
+    if (P.ativo) {
+      var inner = '<span class="tag">' + esc(P.rotulo) + '</span><strong>' + esc(P.titulo) + '</strong><span class="d">' + esc(P.detalhe) + '</span>';
+      html = P.href ? '<a class="patro" href="' + esc(P.href) + '" target="_blank" rel="noopener sponsored">' + inner + '</a>' : '<div class="patro">' + inner + '</div>';
+    }
+    $("#patroTopo").innerHTML = html;
+    $("#patroBase").innerHTML = "";
+  }
+
+  function render() {
+    renderStatus(); renderPlacar(); renderMapa(); renderRegioes(); renderGrafico(); renderEventos(); arenaAtualiza(); mapaMsgAtualiza();
+  }
+
+  /* ======= ARENA: cabo de guerra de bonequinhos em pixel art ======= */
+  var AR = { cv: null, g: null, W: 148, H: 46, cur: 0, alvo: 0, cel: null, parts: [], cores: null, corT: 0, ult: 0,
+             reduz: !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) };
+  var PELES = ["#f0c8a0", "#d9a273", "#a96f45", "#7a4a2e"];
+
+  function lum(h) { var n = parseInt(h.slice(1), 16); return (n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114; }
+  function arenaCores() {
+    var cs = getComputedStyle(document.documentElement);
+    var q = function (k) { return cs.getPropertyValue(k).trim(); };
+    var sup = q("--surface");
+    var escuro = sup.charAt(0) === "#" ? lum(sup) < 100 : false;
+    AR.cores = { a: q("--lula"), b: q("--flavio"), ceu: q("--soft"), chao: escuro ? "#2f5d3a" : "#7bb662", chao2: escuro ? "#244a2e" : "#639a4d",
+                 corda: "#c9a26b", marca: q("--ink"), roupa: escuro ? "#8d98ad" : "#2b3345" };
+    AR.corT = Date.now();
+  }
+
+  function boneco(g, x, y0, cor, pele, dir, lean, passo, pulo, bracoCima) {
+    var y = y0 - Math.round(pulo), C = AR.cores;
+    g.fillStyle = C.roupa;
+    g.fillRect(x - 2, y - 3, 2, passo ? 3 : 2);
+    g.fillRect(x + 1, y - 3, 2, passo ? 2 : 3);
+    g.fillStyle = cor; g.fillRect(x - 3 + lean, y - 8, 6, 5);
+    g.fillStyle = pele; g.fillRect(x - 2 + lean, y - 11, 4, 3);
+    g.fillStyle = cor; g.fillRect(x - 3 + lean, y - 13, 6, 2);
+    g.fillStyle = "#1b1b1b"; g.fillRect(x + (dir > 0 ? 1 : -2) + lean, y - 10, 1, 1);
+    g.fillStyle = pele;
+    if (bracoCima) { g.fillRect(x - 4 + lean, y - 12, 1, 4); g.fillRect(x + 3 + lean, y - 12, 1, 4); }
+    else if (dir > 0) g.fillRect(x + 3 + lean, y0 - 7, 3, 1);
+    else g.fillRect(x - 5 + lean, y0 - 7, 3, 1);
+  }
+
+  function arenaCelebra(lado) {
+    if (AR.reduz || !AR.cores) return;
+    var x = AR.W / 2 - AR.cur + (lado === "a" ? -32 : 32), cs = [lado === "a" ? AR.cores.a : AR.cores.b, "#ffd34d", "#ffffff"];
+    for (var i = 0; i < 28; i++) AR.parts.push({ x: x + (Math.random() - 0.5) * 30, y: AR.H - 26, vx: (Math.random() - 0.5) * 1.6, vy: -1.2 - Math.random() * 1.6, c: cs[i % 3] });
+    AR.cel = { lado: lado, t0: Date.now() };
+  }
+
+  function arenaQuadro(t) {
+    var g = AR.g, W = AR.W, H = AR.H, y0 = H - 9;
+    if (!AR.cores || t - AR.corT > 2000) arenaCores();
+    var C = AR.cores;
+    g.fillStyle = C.ceu; g.fillRect(0, 0, W, H);
+    g.fillStyle = C.chao; g.fillRect(0, y0 + 1, W, H - y0 - 1);
+    g.fillStyle = C.chao2;
+    for (var k = 0; k < W; k += 6) g.fillRect(k + ((k / 6) % 2) * 3, y0 + 4, 3, 1);
+    g.globalAlpha = 0.5; g.fillStyle = C.marca; g.fillRect(W / 2, y0 - 17, 1, 18); g.globalAlpha = 1;
+
+    if (!AR.reduz) AR.cur += (AR.alvo - AR.cur) * 0.06;
+    var fx = Math.round(W / 2 - AR.cur);
+    var lider = AR.alvo > 0.5 ? "a" : (AR.alvo < -0.5 ? "b" : null);
+    var cel = AR.cel && t - AR.cel.t0 < 2800 ? AR.cel.lado : null;
+
+    g.fillStyle = C.corda; g.fillRect(fx - 46, y0 - 7, 92, 1);
+    g.fillStyle = C.marca; g.fillRect(fx - 1, y0 - 11, 3, 4);
+
+    for (var i = 0; i < 4; i++) {
+      var passo = AR.reduz ? 0 : Math.floor(t / 260 + i) % 2;
+      var ja = cel === "a" ? Math.abs(Math.sin(t / 140 + i * 0.9)) * 5 : 0;
+      var jb = cel === "b" ? Math.abs(Math.sin(t / 140 + i * 0.9)) * 5 : 0;
+      boneco(g, fx - 14 - i * 9, y0, C.a, PELES[i % 4], 1, lider === "a" ? -1 : 0, passo, ja, cel === "a");
+      boneco(g, fx + 14 + i * 9, y0, C.b, PELES[(i + 2) % 4], -1, lider === "b" ? 1 : 0, passo, jb, cel === "b");
+    }
+
+    for (var p = AR.parts.length - 1; p >= 0; p--) {
+      var q = AR.parts[p];
+      q.vy += 0.1; q.x += q.vx; q.y += q.vy;
+      if (q.y > y0 + 3) { AR.parts.splice(p, 1); continue; }
+      g.fillStyle = q.c; g.fillRect(Math.round(q.x), Math.round(q.y), 2, 2);
+    }
+  }
+
+  function arenaLoop(t) {
+    requestAnimationFrame(arenaLoop);
+    if (document.hidden || t - AR.ult < 33) return;
+    AR.ult = t;
+    arenaQuadro(Date.now());
+  }
+
+  function arenaAtualiza() {
+    if (!AR.cv) return;
+    var v = S.visao, d = v ? (v.pa - v.pb) : 0;
+    AR.alvo = Math.max(-24, Math.min(24, d * 2.4));
+    if (AR.reduz) { AR.cur = AR.alvo; arenaQuadro(Date.now()); }
+    var lider = !v || Math.abs(d) < 0.05 ? null : (d > 0 ? NA.nome : NB.nome);
+    AR.cv.setAttribute("aria-label", lider ? "Cabo de guerra entre as duas equipes: a corda está do lado de " + lider : "Cabo de guerra entre as duas equipes: corda no meio");
+  }
+
+  /* ======= CONTAGEM REGRESSIVA ======= */
+  var alvo = Date.parse(CONFIG.INICIO);
+  function tickContagem() {
+    var el = $("#contagem");
+    if (!el) return;
+    var ms = alvo - Date.now();
+    if (ms <= 0) { el.textContent = "Esperando os primeiros boletins"; return; }
+    var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+    el.textContent = "Faltam " + (d ? d + "d " : "") + h + "h " + String(m).padStart(2, "0") + "min " + String(ss).padStart(2, "0") + "s";
+  }
+  setInterval(tickContagem, 1000);
+
+  /* ======= EVENTOS ======= */
+  function detectar(antes, depois) {
+    if (!antes) return;
+    var ev = [], agora = new Date();
+    var liderAntes = antes.a > antes.b ? "a" : "b", liderDepois = depois.a > depois.b ? "a" : "b";
+    if (antes.a + antes.b > 0 && liderAntes !== liderDepois) { ev.push((liderDepois === "a" ? NA.nome : NB.nome) + " assume a liderança nacional"); arenaCelebra(liderDepois); }
+    Object.keys(depois.ufs).forEach(function (uf) {
+      var u = depois.ufs[uf], p = antes.ufs[uf];
+      if (!p || !u.t) return;
+      var la = p.a > p.b ? "a" : "b", lb = u.a > u.b ? "a" : "b";
+      if (p.t && la !== lb) ev.push(uf + ": " + (lb === "a" ? NA.nome : NB.nome) + " passa à frente");
+      if (p.secoesPct < 99.995 && u.secoesPct >= 99.995) ev.push(uf + ": 100% apurado, " + (lb === "a" ? NA.nome + " " + fmtPct(u.pa) : NB.nome + " " + fmtPct(u.pb)) + "%");
+    });
+    ev.forEach(function (txt) { S.eventos.unshift({ t: agora, txt: txt }); });
+    S.eventos = S.eventos.slice(0, 12);
+  }
+
+  /* ======= HISTÓRICO (por navegador) ======= */
+  var HKEY = "apuracao25-10:" + (S.turnoTeste ? "t1" : "t2");
+  function lerHist() { try { var h = JSON.parse(localStorage.getItem(HKEY) || "[]"); if (Array.isArray(h)) S.hist = h; } catch (e) { /* sem armazenamento */ } }
+  function gravarHist() { try { localStorage.setItem(HKEY, JSON.stringify(S.hist)); } catch (e) { /* ignora */ } }
+
+  /* ======= BUSCA ======= */
+  function setEnsaio(f) {
+    if (S.ensaio === f) return;
+    S.ensaio = f;
+    if (!S.sim) { NA = f ? SIM_A : NA0; NB = f ? SIM_B : NB0; }
+    if (f) S.hist = [];
+  }
+  function aplicar(d) {
+    if (d && typeof d.ensaio === "boolean") setEnsaio(d.ensaio);
+    if (d && d.turno && d.turno !== S.turnoFeed) {
+      S.turnoFeed = d.turno;
+      var h1 = document.querySelector(".topo h1"), sub = document.querySelector(".topo .sub");
+      if (h1) h1.textContent = "Apuração · " + d.turno + "º turno";
+      if (sub) sub.textContent = "Presidente da República · domingo, " + (d.turno === "1" ? "4 de outubro" : "25 de outubro") + " de 2026";
+      HKEY = "apuracao25-10:t" + d.turno; S.hist = []; lerHist();
+    }
+    if (!d || d.ok === false) {
+      if (S.visao && d && d.motivo !== "aguardando") { S.erro = true; renderStatus(); return; }
+      S.modo = "aguardando"; S.erro = false; S.visao = null; S.ultima = new Date(); render(); return;
+    }
+    var antes = S.visao, v = montarVisao(d);
+    S.modo = "ao-vivo"; S.erro = false; S.dados = d; S.visao = v; S.ultima = new Date();
+    detectar(antes, v);
+    mapaDados(d.mun);
+    var ult = S.hist[S.hist.length - 1];
+    if (v.base > 0 && (!ult || v.secoesPct > ult.p)) { S.hist.push({ p: +v.secoesPct.toFixed(2), a: +v.pa.toFixed(3), b: +v.pb.toFixed(3) }); if (!S.sim && !S.ensaio) gravarHist(); }
+    render();
+  }
+
+  function carregar() {
+    var url = CONFIG.FEED_URL + (S.turnoTeste ? (CONFIG.FEED_URL.indexOf("?") < 0 ? "?" : "&") + "turno=1" : "");
+    fetch(url, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (!S.sim) aplicar(d); })
+      .catch(function () { if (S.sim) return; S.erro = true; if (!S.visao) S.modo = "aguardando"; renderStatus(); });
+  }
+
+  /* ======= MAPA POR CIDADE ======= */
+  var SIGLA = { 11: "RO", 12: "AC", 13: "AM", 14: "RR", 15: "PA", 16: "AP", 17: "TO", 21: "MA", 22: "PI", 23: "CE", 24: "RN", 25: "PB", 26: "PE", 27: "AL", 28: "SE", 29: "BA", 31: "MG", 32: "ES", 33: "RJ", 35: "SP", 41: "PR", 42: "SC", 43: "RS", 50: "MS", 51: "MT", 52: "GO", 53: "DF" };
+  var REGIAO = { 1: "Norte", 2: "Nordeste", 3: "Sudeste", 4: "Sul", 5: "Centro-Oeste" };
+  var NA0 = NA, NB0 = NB;
+  var SIM_A = { nome: "Vermelho", completo: "Candidato vermelho", partido: "", tag: "fictício" };
+  var SIM_B = { nome: "Azul", completo: "Candidato azul", partido: "", tag: "fictício" };
+  function tagDe(c, id) { return c.tag || ((c.partido ? c.partido + " " : "") + id); }
+
+  var MP = {
+    pronto: false, erroMalha: false, temDados: false, N: 0, cod: [], nome: [], uf: [], idx: {}, paths: [], rings: [],
+    bb: null, ordem: null, ufBox: {}, MW: 1, MH: 1, KX: 0.9703, W: 0, H: 0, cw: 0, ch: 0, dpr: 1,
+    v: { k: 1, tx: 0, ty: 0 }, fitK: 1, zoomado: false, anim: null,
+    A: null, B: null, T: null, P: null, dA: null, dB: null, dT: null, dP: null,
+    pend: [], fl: [], sel: -1, hov: -1, pal: null, palT: 0, janela: Math.min(CONFIG.POLL_MS * 0.7, 20000),
+    quadro: 0, sujo: true, contSujo: true, ultCont: 0, primeira: true, espera: null, regiaoAtiva: "br"
+  };
+
+  function h32(n) { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return (n >>> 0) / 4294967296; }
+  function hexRgb(h) { h = String(h).trim(); if (h.charAt(0) !== "#") return [128, 128, 128]; if (h.length === 4) h = "#" + h[1] + h[1] + h[2] + h[2] + h[3] + h[3]; var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+  function mixRgb(a, b, t) { return "rgb(" + Math.round(a[0] + (b[0] - a[0]) * t) + "," + Math.round(a[1] + (b[1] - a[1]) * t) + "," + Math.round(a[2] + (b[2] - a[2]) * t) + ")"; }
+
+  function mapaPaleta() {
+    var cs = getComputedStyle(document.documentElement), q = function (k) { return cs.getPropertyValue(k).trim(); };
+    var sa = hexRgb(q("--lula")), sb = hexRgb(q("--flavio")), su = hexRgb(q("--surface"));
+    var p = { A: [], B: [], bg: q("--bg"), nd: q("--line"), emp: q("--muted"), tinta: q("--ink"), borda: "rgba(" + su[0] + "," + su[1] + "," + su[2] + ",0.75)", fa: q("--lula"), fb: q("--flavio") };
+    for (var s = 0; s < 16; s++) { var t = 0.36 + 0.64 * s / 15; p.A.push(mixRgb(su, sa, t)); p.B.push(mixRgb(su, sb, t)); }
+    MP.pal = p; MP.palT = Date.now();
+  }
+  function corDe(i) {
+    var t = MP.dT[i];
+    if (!(t > 0)) return MP.pal.nd;
+    var d = MP.dA[i] - MP.dB[i];
+    if (d === 0) return MP.pal.emp;
+    var s = Math.min(15, Math.floor(Math.min(1, Math.abs(d) / t / 0.4) * 15));
+    return d > 0 ? MP.pal.A[s] : MP.pal.B[s];
+  }
+
+  function mapaTransforma(g) { var v = MP.v; g.setTransform(MP.dpr * v.k * MP.KX, 0, 0, MP.dpr * v.k, MP.dpr * v.tx, MP.dpr * v.ty); }
+  function pintaCidade(g, i, perto) {
+    var c = corDe(i), p = MP.paths[i];
+    g.fillStyle = c; g.fill(p);
+    g.strokeStyle = perto ? MP.pal.borda : c; g.stroke(p);
+  }
+  function pintaTudo() {
+    if (!MP.pal || Date.now() - MP.palT > 1500) mapaPaleta();
+    var g = MP.g, v = MP.v;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, MP.cw, MP.ch);
+    mapaTransforma(g);
+    var perto = v.k > MP.fitK * 2.5;
+    g.lineWidth = (perto ? 0.6 : 0.9) / v.k; g.lineJoin = "round";
+    var x0 = -v.tx / (v.k * MP.KX), x1 = (MP.W - v.tx) / (v.k * MP.KX), y0 = -v.ty / v.k, y1 = (MP.H - v.ty) / v.k, b = MP.bb;
+    for (var o = 0; o < MP.N; o++) {
+      var i = MP.ordem[o], j = 4 * i;
+      if (b[j + 2] < x0 || b[j] > x1 || b[j + 3] < y0 || b[j + 1] > y1) continue;
+      pintaCidade(g, i, perto);
+    }
+  }
+  function pintaUma(i) {
+    var g = MP.g, v = MP.v;
+    mapaTransforma(g); g.lineWidth = (v.k > MP.fitK * 2.5 ? 0.6 : 0.9) / v.k; g.lineJoin = "round";
+    pintaCidade(g, i, v.k > MP.fitK * 2.5);
+  }
+  function desenhaFx(agora) {
+    var g = MP.gf, v = MP.v;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, MP.cw, MP.ch);
+    if (!MP.fl.length && MP.sel < 0 && MP.hov < 0) return;
+    mapaTransforma(g); g.lineJoin = "round";
+    for (var n = MP.fl.length - 1; n >= 0; n--) {
+      var f = MP.fl[n], age = (agora - f.t0) / 1300;
+      if (age >= 1) { MP.fl.splice(n, 1); continue; }
+      var al = (1 - age) * (1 - age), p = MP.paths[f.i];
+      g.fillStyle = "rgba(255,255,255," + (al * 0.85).toFixed(3) + ")"; g.fill(p);
+      g.globalAlpha = al; g.lineWidth = (1 + 5 * (1 - age)) / v.k;
+      g.strokeStyle = MP.dA[f.i] >= MP.dB[f.i] ? MP.pal.fa : MP.pal.fb; g.stroke(p); g.globalAlpha = 1;
+    }
+    g.strokeStyle = MP.pal.tinta;
+    if (MP.hov >= 0 && MP.hov !== MP.sel) { g.lineWidth = 1.2 / v.k; g.globalAlpha = 0.7; g.stroke(MP.paths[MP.hov]); g.globalAlpha = 1; }
+    if (MP.sel >= 0) { g.lineWidth = 2.2 / v.k; g.stroke(MP.paths[MP.sel]); }
+  }
+
+  function pedirQuadro() { if (!MP.quadro) MP.quadro = requestAnimationFrame(mapaQuadro); }
+  function mapaQuadro() {
+    MP.quadro = 0;
+    if (!MP.pronto) return;
+    var agora = performance.now(), cont = false;
+    if (MP.anim) {
+      var a = MP.anim, u = Math.min(1, (agora - a.t0) / a.dur), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      MP.v.k = a.de.k + (a.para.k - a.de.k) * e; MP.v.tx = a.de.tx + (a.para.tx - a.de.tx) * e; MP.v.ty = a.de.ty + (a.para.ty - a.de.ty) * e;
+      vistaMudou(); MP.sujo = true;
+      if (u >= 1) MP.anim = null; else cont = true;
+    }
+    var novos = [];
+    while (MP.pend.length && MP.pend[0].t <= agora) novos.push(MP.pend.shift().i);
+    if (novos.length) {
+      novos.forEach(function (i) { MP.dA[i] = MP.A[i]; MP.dB[i] = MP.B[i]; MP.dT[i] = MP.T[i]; MP.dP[i] = MP.P[i]; });
+      if (!MP.sujo) novos.forEach(pintaUma);
+      novos.forEach(function (i) { MP.fl.push({ i: i, t0: agora }); });
+      MP.contSujo = true;
+    }
+    if (MP.pend.length) cont = true;
+    if (MP.sujo) { pintaTudo(); MP.sujo = false; }
+    desenhaFx(agora);
+    if (MP.fl.length) cont = true;
+    if (MP.contSujo) {
+      if (agora - MP.ultCont > 250) { atualizaContagem(); MP.contSujo = false; MP.ultCont = agora; } else cont = true;
+    }
+    if (cont) pedirQuadro();
+  }
+
+  /* câmera */
+  function fitView() { return { k: MP.fitK, tx: (MP.W - MP.MW * MP.fitK * MP.KX) / 2, ty: (MP.H - MP.MH * MP.fitK) / 2 }; }
+  function vistaMudou() {
+    MP.zoomado = MP.v.k > MP.fitK * 1.04;
+    MP.cv.style.touchAction = MP.zoomado ? "none" : "pan-y";
+  }
+  function irPara(box, animar) {
+    var bw = (box[2] - box[0]) || 1, bh = (box[3] - box[1]) || 1;
+    var k = Math.min(MP.W * 0.94 / (bw * MP.KX), MP.H * 0.94 / bh);
+    k = Math.max(MP.fitK, Math.min(MP.fitK * 80, k));
+    var para = { k: k, tx: MP.W / 2 - (box[0] + bw / 2) * k * MP.KX, ty: MP.H / 2 - (box[1] + bh / 2) * k };
+    if (k <= MP.fitK * 1.001) para = fitView();
+    if (!animar) { MP.v = para; vistaMudou(); MP.sujo = true; pedirQuadro(); return; }
+    MP.anim = { t0: performance.now(), dur: 520, de: { k: MP.v.k, tx: MP.v.tx, ty: MP.v.ty }, para: para };
+    pedirQuadro();
+  }
+  function zoomPara(f, cx, cy) {
+    var v = MP.v, nk = Math.max(MP.fitK, Math.min(MP.fitK * 80, v.k * f)), r = nk / v.k;
+    MP.anim = null;
+    if (nk <= MP.fitK * 1.001) MP.v = fitView(); else { v.tx = cx - (cx - v.tx) * r; v.ty = cy - (cy - v.ty) * r; v.k = nk; }
+    vistaMudou(); MP.sujo = true; pedirQuadro();
+  }
+  function mapaRedimensiona() {
+    if (!MP.pronto) return;
+    var r = MP.tela.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) return;
+    var dpr = Math.min(2, window.devicePixelRatio || 1), antes = MP.fitK, estavaFit = !MP.zoomado;
+    MP.W = r.width; MP.H = r.height; MP.dpr = dpr; MP.cw = Math.round(r.width * dpr); MP.ch = Math.round(r.height * dpr);
+    MP.cv.width = MP.cw; MP.cv.height = MP.ch; MP.fx.width = MP.cw; MP.fx.height = MP.ch;
+    MP.fitK = Math.min(MP.W * 0.97 / (MP.MW * MP.KX), MP.H * 0.97 / MP.MH);
+    if (estavaFit || !antes) MP.v = fitView();
+    vistaMudou(); MP.sujo = true; pedirQuadro();
+  }
+
+  /* acerto de clique */
+  function pontoEm(r, x, y) {
+    var n = r.length / 2, dentro = false;
+    for (var i = 0, j = n - 1; i < n; j = i++) {
+      var xi = r[2 * i], yi = r[2 * i + 1], xj = r[2 * j], yj = r[2 * j + 1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) dentro = !dentro;
+    }
+    return dentro;
+  }
+  function acha(px, py) {
+    var v = MP.v, x = (px - v.tx) / (v.k * MP.KX), y = (py - v.ty) / v.k, best = -1, area = Infinity, b = MP.bb;
+    for (var i = 0; i < MP.N; i++) {
+      var j = 4 * i;
+      if (x < b[j] || x > b[j + 2] || y < b[j + 1] || y > b[j + 3]) continue;
+      var a = (b[j + 2] - b[j]) * (b[j + 3] - b[j + 1]);
+      if (a >= area) continue;
+      var rs = MP.rings[i];
+      for (var k = 0; k < rs.length; k++) if (pontoEm(rs[k], x, y)) { best = i; area = a; break; }
+    }
+    return best;
+  }
+
+  /* painel da cidade e contagem */
+  function detalhe(i) {
+    var el = $("#cidade");
+    if (i < 0) { el.innerHTML = '<p class="vazio">Passe o mouse ou toque numa cidade para ver os votos.</p>'; return; }
+    var t = MP.dT[i], nome = esc(MP.nome[i]) + ' <span class="vazio">' + (SIGLA[MP.uf[i]] || "") + '</span>';
+    if (!(t > 0)) { el.innerHTML = '<div class="nome">' + nome + '</div><p class="vazio">Ainda sem votos apurados nesta cidade.</p>'; return; }
+    var a = MP.dA[i], b = MP.dB[i], pa = a / t * 100, pb = b / t * 100, lider = a === b ? "Empate" : (a > b ? NA.nome : NB.nome) + " na frente";
+    el.innerHTML = '<div class="nome">' + nome + '</div>' +
+      '<div class="linha"><b>' + esc(lider) + '</b><span class="vazio">' + fmtPct(MP.dP[i]) + '% das seções</span></div>' +
+      '<div class="linha"><span style="color:var(--lula)">' + esc(NA.nome) + '</span><span>' + fmtPct(pa) + '% · ' + fmtInt(a) + '</span></div>' +
+      '<div class="linha"><span style="color:var(--flavio)">' + esc(NB.nome) + '</span><span>' + fmtPct(pb) + '% · ' + fmtInt(b) + '</span></div>' +
+      '<div class="mini"><span class="sa" style="width:' + pa + '%"></span><span class="sb" style="width:' + pb + '%"></span></div>';
+  }
+  function atualizaContagem() {
+    var a = 0, b = 0, com = 0, fim = 0;
+    for (var i = 0; i < MP.N; i++) if (MP.dT[i] > 0) { com++; if (MP.dA[i] > MP.dB[i]) a++; else if (MP.dB[i] > MP.dA[i]) b++; if (MP.dP[i] >= 99.995) fim++; }
+    $("#mapaCont").textContent = fmtInt(com) + " de " + fmtInt(MP.N) + " cidades com votos" + (fim ? " · " + fmtInt(fim) + " a 100%" : "");
+    $("#cidadesTot").innerHTML = '<div class="a"><b>' + fmtInt(a) + '</b><span>cidades de ' + esc(NA.nome) + '</span></div><div class="b"><b>' + fmtInt(b) + '</b><span>cidades de ' + esc(NB.nome) + '</span></div>';
+    $("#escA").textContent = NA.nome + " +40"; $("#escB").textContent = NB.nome + " +40";
+    if (MP.sel >= 0) detalhe(MP.sel); else if (MP.hov >= 0) detalhe(MP.hov);
+  }
+  function mapaMsgAtualiza() {
+    if (!MP.msg) return;
+    var m = "";
+    if (!MP.pronto) m = MP.erroMalha ? "Não consegui carregar o desenho do mapa." : "Carregando o mapa…";
+    else if (S.sim) m = "";
+    else if (S.modo === "replay") m = "Sem dados por cidade na demonstração. O mapa acende quando o TSE começar a divulgar, domingo às 17h.";
+    else if (S.modo === "aguardando") m = "O mapa acende cidade por cidade quando o TSE começar a divulgar.";
+    else if (!MP.temDados) m = "Este servidor ainda não envia dados por cidade.";
+    MP.msg.textContent = m; MP.msg.hidden = !m;
+    var sb = $("#simBox"); if (!sb) return;
+    var h = "";
+    if (S.sim) h = '<button type="button" class="btn sec" data-acao="parar">Parar simulação</button><small>Simulação com dados inventados, para ver o mapa funcionando.</small>';
+    else if (S.modo !== "ao-vivo") h = '<button type="button" class="btn" data-acao="simular">Ver simulação</button><small>Dados fictícios, só para ver as cidades acendendo.</small>';
+    if (h !== MP.simHtml) { MP.simHtml = h; sb.innerHTML = h; }
+  }
+
+  /* dados reais */
+  function mapaReset() {
+    if (!MP.N) return;
+    MP.A.fill(0); MP.B.fill(0); MP.T.fill(0); MP.P.fill(0); MP.dA.fill(0); MP.dB.fill(0); MP.dT.fill(0); MP.dP.fill(0);
+    MP.pend = []; MP.fl = []; MP.sel = -1; MP.hov = -1; MP.primeira = true; MP.temDados = false;
+    MP.sujo = true; MP.contSujo = true; pedirQuadro(); detalhe(-1);
+  }
+  function mapaDados(mun) {
+    if (!mun) return;
+    if (!MP.pronto) { MP.espera = mun; return; }
+    var agora = performance.now(), cs = Object.keys(mun), imediato = MP.primeira;
+    for (var n = 0; n < cs.length; n++) {
+      var i = MP.idx[cs[n]];
+      if (i === undefined) continue;
+      var e = mun[cs[n]], a = +e[0] || 0, b = +e[1] || 0, t = +e[2] || 0, p = +e[3] || 0;
+      if (a === MP.A[i] && b === MP.B[i] && t === MP.T[i] && p === MP.P[i]) continue;
+      MP.A[i] = a; MP.B[i] = b; MP.T[i] = t; MP.P[i] = p;
+      if (imediato) { MP.dA[i] = a; MP.dB[i] = b; MP.dT[i] = t; MP.dP[i] = p; }
+      else MP.pend.push({ i: i, t: agora + Math.random() * MP.janela });
+    }
+    if (cs.length) { MP.temDados = true; if (imediato) { MP.primeira = false; MP.sujo = true; } }
+    MP.pend.sort(function (x, y) { return x.t - y.t; });
+    MP.contSujo = true; pedirQuadro(); mapaMsgAtualiza();
+  }
+
+  function mapaConstroi(m) {
+    var N = m.c.length, bb = new Int32Array(N * 4), ar = new Float64Array(N);
+    MP.N = N; MP.cod = m.c; MP.nome = m.n; MP.uf = m.u; MP.MW = m.w; MP.MH = m.h;
+    for (var i = 0; i < N; i++) {
+      var path = new Path2D(), rs = [], x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      m.p[i].forEach(function (r) {
+        var n = r.length / 2, arr = new Int32Array(r.length), x = r[0], y = r[1];
+        arr[0] = x; arr[1] = y; path.moveTo(x, y);
+        for (var j = 1; j < n; j++) { x += r[2 * j]; y += r[2 * j + 1]; arr[2 * j] = x; arr[2 * j + 1] = y; path.lineTo(x, y); }
+        path.closePath(); rs.push(arr);
+        for (var q = 0; q < arr.length; q += 2) { if (arr[q] < x0) x0 = arr[q]; if (arr[q] > x1) x1 = arr[q]; if (arr[q + 1] < y0) y0 = arr[q + 1]; if (arr[q + 1] > y1) y1 = arr[q + 1]; }
+      });
+      MP.paths.push(path); MP.rings.push(rs); MP.idx[m.c[i]] = i;
+      bb[4 * i] = x0; bb[4 * i + 1] = y0; bb[4 * i + 2] = x1; bb[4 * i + 3] = y1; ar[i] = (x1 - x0) * (y1 - y0);
+      var u = m.u[i], cx = MP.ufBox[u];
+      if (!cx) MP.ufBox[u] = [x0, y0, x1, y1]; else { cx[0] = Math.min(cx[0], x0); cx[1] = Math.min(cx[1], y0); cx[2] = Math.max(cx[2], x1); cx[3] = Math.max(cx[3], y1); }
+    }
+    MP.bb = bb;
+    MP.ordem = Array.from({ length: N }, function (_, i) { return i; }).sort(function (a, b) { return ar[b] - ar[a]; });
+    MP.A = new Float64Array(N); MP.B = new Float64Array(N); MP.T = new Float64Array(N); MP.P = new Float64Array(N);
+    MP.dA = new Float64Array(N); MP.dB = new Float64Array(N); MP.dT = new Float64Array(N); MP.dP = new Float64Array(N);
+
+    var chips = [{ id: "br", nome: "Brasil", box: [0, 0, MP.MW, MP.MH] }];
+    [1, 2, 5, 3, 4].forEach(function (r) {
+      var box = null;
+      Object.keys(MP.ufBox).forEach(function (u) { if (Math.floor(u / 10) !== r) return; var b = MP.ufBox[u]; box = box ? [Math.min(box[0], b[0]), Math.min(box[1], b[1]), Math.max(box[2], b[2]), Math.max(box[3], b[3])] : b.slice(); });
+      if (box) chips.push({ id: "r" + r, nome: REGIAO[r], box: box });
+    });
+    MP.chips = chips;
+    $("#mapaChips").innerHTML = chips.map(function (c) { return '<button type="button" class="chip" data-chip="' + c.id + '" aria-pressed="' + (c.id === "br") + '">' + c.nome + '</button>'; }).join("");
+    var ufs = Object.keys(SIGLA).sort(function (a, b) { return SIGLA[a] < SIGLA[b] ? -1 : 1; });
+    $("#mapaUf").innerHTML = '<option value="">Escolha…</option>' + ufs.map(function (u) { return '<option value="' + u + '">' + SIGLA[u] + '</option>'; }).join("");
+
+    MP.pronto = true; mapaPaleta(); mapaRedimensiona(); detalhe(-1); mapaMsgAtualiza();
+    estConstroi(); estRedimensiona(); renderMapa();
+    if (MP.espera) { var e = MP.espera; MP.espera = null; mapaDados(e); }
+    if (S.sim) simIniciarDados();
+  }
+
+  function marcaChip(id) {
+    var bs = document.querySelectorAll("#mapaChips .chip");
+    for (var i = 0; i < bs.length; i++) bs[i].setAttribute("aria-pressed", String(bs[i].dataset.chip === id));
+    if (id !== "uf") $("#mapaUf").value = "";
+  }
+
+  function mapaInit() {
+    MP.tela = $("#mapaTela"); MP.cv = $("#mapaBase"); MP.fx = $("#mapaFx"); MP.msg = $("#mapaMsg");
+    MP.g = MP.cv.getContext("2d"); MP.gf = MP.fx.getContext("2d");
+    detalhe(-1);
+    fetch("malha.json").then(function (r) { if (!r.ok) throw new Error("malha"); return r.json(); })
+      .then(mapaConstroi).catch(function () { MP.erroMalha = true; mapaMsgAtualiza(); });
+
+    if (window.ResizeObserver) new ResizeObserver(mapaRedimensiona).observe(MP.tela); else window.addEventListener("resize", mapaRedimensiona);
+    var redesenha = function () { MP.palT = 0; MP.sujo = true; pedirQuadro(); };
+    if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", redesenha); }
+    new MutationObserver(redesenha).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+    var cv = MP.cv, ptr = new Map(), G = { moveu: false, ini: null, v0: null, d0: 0, vp: null, m0: null };
+    var rel = function (e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    function pinchInicio() {
+      var ps = Array.from(ptr.values()), a = ps[0], b = ps[1];
+      G.d0 = Math.hypot(a.x - b.x, a.y - b.y) || 1; G.vp = { k: MP.v.k, tx: MP.v.tx, ty: MP.v.ty };
+      var cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      G.m0 = { x: (cx - G.vp.tx) / (G.vp.k * MP.KX), y: (cy - G.vp.ty) / G.vp.k };
+    }
+    cv.addEventListener("pointerdown", function (e) {
+      if (!MP.pronto) return;
+      try { cv.setPointerCapture(e.pointerId); } catch (_) { /* ignora */ }
+      ptr.set(e.pointerId, rel(e));
+      if (ptr.size === 1) { G.moveu = false; G.ini = rel(e); G.v0 = { tx: MP.v.tx, ty: MP.v.ty }; MP.anim = null; }
+      else { G.moveu = true; pinchInicio(); }
+    });
+    cv.addEventListener("pointermove", function (e) {
+      if (!MP.pronto) return;
+      if (!ptr.has(e.pointerId)) {
+        if (e.pointerType === "mouse") { var p = rel(e), i = acha(p.x, p.y); if (i !== MP.hov) { MP.hov = i; if (MP.sel < 0) detalhe(i); pedirQuadro(); } }
+        return;
+      }
+      ptr.set(e.pointerId, rel(e));
+      if (ptr.size === 1) {
+        var q = ptr.get(e.pointerId), dx = q.x - G.ini.x, dy = q.y - G.ini.y;
+        if (!G.moveu && Math.hypot(dx, dy) > 6) G.moveu = true;
+        if (G.moveu && MP.zoomado) { MP.v.tx = G.v0.tx + dx; MP.v.ty = G.v0.ty + dy; MP.sujo = true; pedirQuadro(); }
+      } else if (ptr.size === 2) {
+        var ps = Array.from(ptr.values()), a = ps[0], b = ps[1], d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        var nk = Math.max(MP.fitK, Math.min(MP.fitK * 80, G.vp.k * d / G.d0)), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+        MP.v.k = nk; MP.v.tx = cx - G.m0.x * nk * MP.KX; MP.v.ty = cy - G.m0.y * nk;
+        if (nk <= MP.fitK * 1.001) MP.v = fitView();
+        vistaMudou(); MP.sujo = true; pedirQuadro();
+      }
+    });
+    var fim = function (e) {
+      if (!ptr.has(e.pointerId)) return;
+      var tap = ptr.size === 1 && !G.moveu && e.type === "pointerup";
+      ptr.delete(e.pointerId);
+      if (ptr.size === 1) { var r = Array.from(ptr.values())[0]; G.ini = r; G.v0 = { tx: MP.v.tx, ty: MP.v.ty }; G.moveu = true; }
+      if (tap && MP.pronto) { var p = rel(e), i = acha(p.x, p.y); MP.sel = (i === MP.sel ? -1 : i); detalhe(MP.sel >= 0 ? MP.sel : MP.hov); pedirQuadro(); }
+    };
+    cv.addEventListener("pointerup", fim); cv.addEventListener("pointercancel", fim);
+    cv.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse" && MP.hov >= 0) { MP.hov = -1; if (MP.sel < 0) detalhe(-1); pedirQuadro(); } });
+    cv.addEventListener("wheel", function (e) { if (!(e.ctrlKey || e.metaKey) || !MP.pronto) return; e.preventDefault(); var p = rel(e); zoomPara(Math.exp(-e.deltaY * 0.0025), p.x, p.y); }, { passive: false });
+    cv.addEventListener("dblclick", function (e) { if (!MP.pronto) return; var p = rel(e); zoomPara(2, p.x, p.y); });
+    cv.addEventListener("keydown", function (e) {
+      if (!MP.pronto) return;
+      if (e.key === "+" || e.key === "=") zoomPara(1.5, MP.W / 2, MP.H / 2);
+      else if (e.key === "-") zoomPara(1 / 1.5, MP.W / 2, MP.H / 2);
+      else if (e.key === "0") { irPara([0, 0, MP.MW, MP.MH], true); marcaChip("br"); }
+    });
+    $("#zMais").addEventListener("click", function () { if (MP.pronto) zoomPara(1.7, MP.W / 2, MP.H / 2); });
+    $("#zMenos").addEventListener("click", function () { if (MP.pronto) zoomPara(1 / 1.7, MP.W / 2, MP.H / 2); });
+    $("#zBrasil").addEventListener("click", function () { if (MP.pronto) { irPara([0, 0, MP.MW, MP.MH], true); marcaChip("br"); } });
+    $("#mapaChips").addEventListener("click", function (e) {
+      var b = e.target.closest(".chip"); if (!b || !MP.pronto) return;
+      var c = MP.chips.filter(function (x) { return x.id === b.dataset.chip; })[0];
+      if (c) { irPara(c.box, true); marcaChip(c.id); }
+    });
+    $("#mapaUf").addEventListener("change", function (e) {
+      var u = e.target.value; if (!u || !MP.pronto || !MP.ufBox[u]) return;
+      irPara(MP.ufBox[u], true); marcaChip("uf"); e.target.value = u;
+    });
+    $("#simBox").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.acao === "simular") simIniciar(); else if (b.dataset.acao === "parar") simParar();
+    });
+  }
+
+  /* ======= MAPA DOS ESTADOS (contorno real, mesma malha das cidades) ======= */
+  var EM = { v: { k: 1, tx: 0, ty: 0 }, W: 0, H: 0, cw: 0, ch: 0, dpr: 1, sujo: true, quadro: 0, hov: "", porUf: null, rot: null, cv: null, fx: null, g: null, gf: null, tela: null, msg: null };
+  var UFCOD = {};
+  Object.keys(SIGLA).forEach(function (c) { UFCOD[SIGLA[c]] = c; });
+
+  function corUf(sig) {
+    var v = S.visao, u = v && v.ufs ? v.ufs[sig] : null, p = MP.pal;
+    if (!u || !(u.t > 0)) return p.nd;
+    var d = u.a - u.b;
+    if (d === 0) return p.emp;
+    var s = Math.min(15, Math.floor(Math.min(1, Math.abs(u.pa - u.pb) / 25) * 15));
+    return d > 0 ? p.A[s] : p.B[s];
+  }
+  function luzDe(cor) {
+    var m = String(cor).match(/\d+/g);
+    if (cor.charAt(0) === "#") { var c = hexRgb(cor); return c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114; }
+    return m ? (+m[0]) * 0.299 + (+m[1]) * 0.587 + (+m[2]) * 0.114 : 128;
+  }
+  function estTransforma(g) { var v = EM.v; g.setTransform(EM.dpr * v.k * MP.KX, 0, 0, EM.dpr * v.k, EM.dpr * v.tx, EM.dpr * v.ty); }
+
+  function estConstroi() {
+    EM.porUf = {}; EM.rot = {};
+    var acc = {};
+    for (var i = 0; i < MP.N; i++) {
+      var u = MP.uf[i], j = 4 * i, b = MP.bb;
+      (EM.porUf[u] || (EM.porUf[u] = [])).push(i);
+      var a = (b[j + 2] - b[j]) * (b[j + 3] - b[j + 1]), r = acc[u] || (acc[u] = { x: 0, y: 0, a: 0 });
+      r.x += (b[j] + b[j + 2]) / 2 * a; r.y += (b[j + 1] + b[j + 3]) / 2 * a; r.a += a;
+    }
+    Object.keys(acc).forEach(function (u) { EM.rot[SIGLA[u]] = { x: acc[u].x / acc[u].a, y: acc[u].y / acc[u].a, box: MP.ufBox[u] }; });
+  }
+
+  function estPedir() { if (!EM.quadro) EM.quadro = requestAnimationFrame(estQuadro); }
+  function estQuadro() {
+    EM.quadro = 0;
+    if (!MP.pronto || !EM.W || !EM.porUf) return;
+    if (EM.sujo) { estPinta(); EM.sujo = false; }
+    estFx();
+  }
+  function estRedimensiona() {
+    if (!MP.pronto) return;
+    var r = EM.tela.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) return;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    EM.W = r.width; EM.H = r.height; EM.dpr = dpr; EM.cw = Math.round(r.width * dpr); EM.ch = Math.round(r.height * dpr);
+    EM.cv.width = EM.cw; EM.cv.height = EM.ch; EM.fx.width = EM.cw; EM.fx.height = EM.ch;
+    var k = Math.min(EM.W * 0.97 / (MP.MW * MP.KX), EM.H * 0.97 / MP.MH);
+    EM.v = { k: k, tx: (EM.W - MP.MW * k * MP.KX) / 2, ty: (EM.H - MP.MH * k) / 2 };
+    EM.sujo = true; estPedir();
+  }
+  function estPinta() {
+    if (!MP.pal || Date.now() - MP.palT > 1500) mapaPaleta();
+    var g = EM.g, v = EM.v;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, EM.cw, EM.ch);
+    estTransforma(g); g.lineJoin = "round";
+    Object.keys(EM.porUf).forEach(function (uc) {
+      var ids = EM.porUf[uc], cor = corUf(SIGLA[uc]);
+      g.strokeStyle = MP.pal.bg; g.lineWidth = 3.2 / v.k;           // faixa que vira a divisa entre estados
+      ids.forEach(function (i) { g.stroke(MP.paths[i]); });
+      g.fillStyle = cor; g.strokeStyle = cor; g.lineWidth = 0.9 / v.k; // preenche e esconde as divisas das cidades
+      ids.forEach(function (i) { g.fill(MP.paths[i]); g.stroke(MP.paths[i]); });
+    });
+  }
+  function estRotulos(g) {
+    var v = EM.v, vv = S.visao;
+    g.setTransform(EM.dpr, 0, 0, EM.dpr, 0, 0);
+    g.textAlign = "center"; g.textBaseline = "middle";
+    Object.keys(EM.rot).forEach(function (sig) {
+      var r = EM.rot[sig], bw = (r.box[2] - r.box[0]) * v.k * MP.KX, bh = (r.box[3] - r.box[1]) * v.k;
+      if (bw < 34 || bh < 20) return;
+      var x = v.tx + r.x * v.k * MP.KX, y = v.ty + r.y * v.k, cor = corUf(sig), u = vv && vv.ufs ? vv.ufs[sig] : null;
+      var claro = luzDe(cor) > 150;
+      g.fillStyle = claro ? "rgba(15,23,41,0.88)" : "rgba(255,255,255,0.95)";
+      var margem = u && u.t > 0 && bw >= 70 && bh >= 44;
+      g.font = '700 12px "Barlow Condensed", "Arial Narrow", sans-serif';
+      g.fillText(sig, x, margem ? y - 6 : y);
+      if (margem) { g.font = '500 10px "IBM Plex Mono", ui-monospace, monospace'; g.fillText("+" + Math.abs(u.pa - u.pb).toFixed(1).replace(".", ","), x, y + 7); }
+    });
+  }
+  function estFx() {
+    var g = EM.gf, v = EM.v;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, EM.cw, EM.ch);
+    var alvos = [];
+    if (EM.hov && EM.hov !== S.sel) alvos.push([EM.hov, 0.55, 1.6]);
+    if (S.sel) alvos.push([S.sel, 1, 2.4]);
+    if (alvos.length) {
+      estTransforma(g); g.lineJoin = "round";
+      alvos.forEach(function (a) {
+        var ids = EM.porUf[UFCOD[a[0]]]; if (!ids) return;
+        var cor = corUf(a[0]);
+        g.globalAlpha = a[1]; g.strokeStyle = MP.pal.tinta; g.lineWidth = a[2] * 2 / v.k;
+        ids.forEach(function (i) { g.stroke(MP.paths[i]); });
+        g.globalAlpha = 1; g.fillStyle = cor; g.strokeStyle = cor; g.lineWidth = 0.9 / v.k;
+        ids.forEach(function (i) { g.fill(MP.paths[i]); g.stroke(MP.paths[i]); });
+      });
+    }
+    estRotulos(g);
+  }
+  function estAcha(px, py) {
+    var v = EM.v, x = (px - v.tx) / (v.k * MP.KX), y = (py - v.ty) / v.k, best = -1, area = Infinity, b = MP.bb;
+    for (var i = 0; i < MP.N; i++) {
+      var j = 4 * i;
+      if (x < b[j] || x > b[j + 2] || y < b[j + 1] || y > b[j + 3]) continue;
+      var a = (b[j + 2] - b[j]) * (b[j + 3] - b[j + 1]);
+      if (a >= area) continue;
+      var rs = MP.rings[i];
+      for (var k = 0; k < rs.length; k++) if (pontoEm(rs[k], x, y)) { best = i; area = a; break; }
+    }
+    return best < 0 ? "" : SIGLA[MP.uf[best]];
+  }
+  function estInit() {
+    EM.tela = $("#estTela"); EM.cv = $("#estBase"); EM.fx = $("#estFx"); EM.msg = $("#estMsg");
+    EM.g = EM.cv.getContext("2d"); EM.gf = EM.fx.getContext("2d");
+    if (window.ResizeObserver) new ResizeObserver(estRedimensiona).observe(EM.tela); else window.addEventListener("resize", estRedimensiona);
+    var redesenha = function () { MP.palT = 0; EM.sujo = true; estPedir(); };
+    if (window.matchMedia) { var mq = window.matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", redesenha); }
+    new MutationObserver(redesenha).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    var rel = function (e) { var r = EM.cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    EM.cv.addEventListener("pointermove", function (e) {
+      if (e.pointerType !== "mouse" || !MP.pronto) return;
+      var p = rel(e), u = estAcha(p.x, p.y);
+      if (u !== EM.hov) { EM.hov = u; if (!S.sel) renderDetalhe(); estPedir(); }
+    });
+    EM.cv.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse" && EM.hov) { EM.hov = ""; if (!S.sel) renderDetalhe(); estPedir(); } });
+    EM.cv.addEventListener("click", function (e) {
+      if (!MP.pronto) return;
+      var p = rel(e), u = estAcha(p.x, p.y);
+      S.sel = (u && u !== S.sel) ? u : null;
+      renderDetalhe(); estPedir();
+    });
+  }
+
+  /* ======= SIMULAÇÃO (dados inventados, só para demonstração) ======= */
+  var SIM = { t0: 0, dur: 70000, timer: null, prep: null };
+  function simPrepara() {
+    if (SIM.prep || !MP.pronto) return;
+    var N = MP.N, r = new Float64Array(N), a = new Float64Array(N), b = new Float64Array(N), t = new Float64Array(N), tot = 0, ufTot = {};
+    var vies = { 1: 0.0, 2: 0.17, 3: -0.03, 4: -0.13, 5: -0.14 };
+    for (var i = 0; i < N; i++) {
+      var uf = MP.uf[i], h1 = h32(i * 3 + 1), h2 = h32(i * 3 + 2), h3 = h32(i * 3 + 3);
+      var share = 0.5 + (vies[Math.floor(uf / 10)] || 0) + (h32(uf * 13 + 7) - 0.5) * 0.1 + (h1 - 0.5) * 0.22;
+      share = Math.max(0.12, Math.min(0.88, share));
+      var vt = Math.round(1200 + 90000 * Math.pow(h2, 5));
+      t[i] = vt; a[i] = Math.round(vt * share); b[i] = vt - a[i];
+      r[i] = Math.min(0.97, 0.04 + 0.78 * h3 + 0.12 * Math.sqrt(h2));
+      tot += vt; ufTot[uf] = (ufTot[uf] || 0) + vt;
+    }
+    SIM.prep = { r: r, a: a, b: b, t: t, total: tot, ufTot: ufTot };
+  }
+  function simQuadro() {
+    var p = SIM.prep; if (!p || !S.sim) return;
+    var f = Math.min(1, (Date.now() - SIM.t0) / SIM.dur), mun = {}, us = {}, ba = 0, bb = 0, bt = 0;
+    for (var i = 0; i < MP.N; i++) {
+      if (p.r[i] > f) continue;
+      mun[MP.cod[i]] = [p.a[i], p.b[i], p.t[i], 100];
+      var uf = MP.uf[i], u = us[uf] || (us[uf] = { a: 0, b: 0, t: 0 });
+      u.a += p.a[i]; u.b += p.b[i]; u.t += p.t[i]; ba += p.a[i]; bb += p.b[i]; bt += p.t[i];
+    }
+    var d = { ok: true, brasil: { secoesPct: bt / p.total * 100, validos: bt, candidatos: [{ n: IA, votos: ba }, { n: IB, votos: bb }] }, ufs: {}, mun: mun };
+    Object.keys(us).forEach(function (uf) { d.ufs[SIGLA[uf]] = { secoesPct: us[uf].t / p.ufTot[uf] * 100, candidatos: [{ n: IA, votos: us[uf].a }, { n: IB, votos: us[uf].b }] }; });
+    aplicar(d);
+    if (f >= 1 && SIM.timer) { clearInterval(SIM.timer); SIM.timer = null; }
+  }
+  function simIniciarDados() {
+    simPrepara();
+    SIM.t0 = Date.now(); MP.janela = 900;
+    simQuadro();
+    if (SIM.timer) clearInterval(SIM.timer);
+    SIM.timer = setInterval(simQuadro, 1000);
+  }
+  function simIniciar() {
+    if (S.sim) return;
+    S.pre = { modo: S.modo, dados: S.dados, visao: S.visao, hist: S.hist, eventos: S.eventos, ultima: S.ultima, erro: S.erro };
+    S.sim = true; S.hist = []; S.eventos = []; S.visao = null; S.modo = "ao-vivo"; S.erro = false;
+    NA = SIM_A; NB = SIM_B;
+    mapaReset();
+    if (MP.pronto) simIniciarDados(); else render();
+  }
+  function simParar() {
+    if (!S.sim) return;
+    if (SIM.timer) { clearInterval(SIM.timer); SIM.timer = null; }
+    S.sim = false; NA = NA0; NB = NB0;
+    var p = S.pre || {};
+    S.modo = p.modo || "aguardando"; S.dados = p.dados || null; S.visao = p.visao || null; S.hist = p.hist || []; S.eventos = p.eventos || []; S.ultima = p.ultima || null; S.erro = !!p.erro;
+    MP.janela = Math.min(CONFIG.POLL_MS * 0.7, 20000);
+    mapaReset();
+    if (S.dados && S.dados.mun) mapaDados(S.dados.mun);
+    render();
+  }
+
+  /* ======= INÍCIO ======= */
+  estInit();
+  mapaInit();
+  AR.cv = $("#arena");
+  AR.g = AR.cv.getContext("2d");
+  AR.g.imageSmoothingEnabled = false;
+  arenaCores();
+  if (AR.reduz) arenaQuadro(Date.now()); else requestAnimationFrame(arenaLoop);
+  $("#legA").textContent = NA.nome;
+  $("#legB").textContent = NB.nome;
+  renderPatro();
+
+  if (CONFIG.FEED_URL) {
+    lerHist(); S.modo = "aguardando"; render(); carregar(); setInterval(carregar, CONFIG.POLL_MS);
+  } else {
+    S.modo = "replay"; S.dados = REPLAY; S.visao = montarVisao(REPLAY); S.ultima = null; render();
+  }
+})();
+</script>
